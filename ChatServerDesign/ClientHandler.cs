@@ -17,6 +17,7 @@ namespace ChatServerDesign
         StreamReader sr;
         StreamWriter sw;
         Channel currentChannel;
+        List<Channel> subscribedChannels;
         CommandHandler commandHandler;
 
         public bool CanRead
@@ -33,12 +34,13 @@ namespace ChatServerDesign
             stream = new NetworkStream(client);
             sr = new StreamReader(stream);
             sw = new StreamWriter(stream);
-            Subscribe("main");
             commandHandler = new CommandHandler();
+            subscribedChannels = new List<Channel>();
         }
 
         public void Run()
         {
+            Subscribe("main");
             string data;
 
             while (CanRead)
@@ -48,9 +50,8 @@ namespace ChatServerDesign
                     data = sr.ReadLine();
                     Console.WriteLine("<{2}> {0} says: {1}", Name, data, currentChannel.Name);
                     HandleCommand(data);
-                    currentChannel.Broadcast(data);
                 }
-                catch(IOException e)
+                catch (IOException e)
                 {
                     Console.WriteLine(e.Message);
                     EndClient();
@@ -60,32 +61,70 @@ namespace ChatServerDesign
 
         public void SendMessage(string message)
         {
-            sw.WriteLine("<{2}> {0} says: {1}", Name, message, currentChannel.Name);
-            sw.Flush();
+            SendServerMessage(string.Format("<{2}> {0} says: {1}", Name, message, currentChannel.Name));
+        }
+
+        private void SendServerMessage(string message)
+        {
+            try
+            {
+                sw.WriteLine(message);
+                sw.Flush();
+            }
+            catch (IOException e)
+            {
+                Console.WriteLine(e.Message);
+                EndClient();
+            }
         }
 
         private void EndClient()
         {
-            Unsubscribe();
             stream.Close();
             client.Close();
+            UnsubscribeAll();
         }
 
         private void Subscribe(string channelName)
         {
-            if (currentChannel != null)
-                Unsubscribe();
+            Channel channel = subscribedChannels.Find(x => x.Name == channelName);
 
-            Console.WriteLine("{0} joined channel <{1}>", Name, channelName);
-            sw.WriteLine("You joined channel <{0}>", channelName);
-            sw.Flush();
-            currentChannel = chatService.JoinChannel(channelName);
-            currentChannel.Subscribers += SendMessage;
+            if (channel == null)
+            {
+                channel = chatService.JoinChannel(channelName);
+                currentChannel = channel;
+                currentChannel.Subscribers += SendMessage;
+                subscribedChannels.Add(currentChannel);
+                Console.WriteLine("{0} joined channel <{1}>", Name, channelName);
+                SendServerMessage(string.Format("You joined channel <{0}>", channelName));
+            }
+            else
+            {
+                currentChannel = channel;
+                SendServerMessage(string.Format("You are now typing in <{0}>", channel.Name));
+            }
         }
 
-        private void Unsubscribe()
+        private void Unsubscribe(string channelName)
         {
-            currentChannel.Subscribers -= SendMessage;
+            Channel channel = subscribedChannels.Find(x => x.Name == channelName);
+
+            if (channel != null && channel.Name != "main")
+            {
+                currentChannel = subscribedChannels.FirstOrDefault();
+                subscribedChannels.Remove(channel);
+                channel.Subscribers -= SendMessage;
+                SendServerMessage(string.Format("You left channel <{0}>", channel.Name));
+            }
+        }
+
+        private void UnsubscribeAll()
+        {
+            for (int i = 0; i < subscribedChannels.Count; i++)
+            {
+                subscribedChannels[i].Subscribers -= SendMessage;
+                subscribedChannels.RemoveAt(i);
+            }
         }
 
         private void HandleCommand(string data)
@@ -95,17 +134,22 @@ namespace ChatServerDesign
             if (tokens.Length > 1 && tokens[0] == "")
             {
                 string[] parametres = tokens[1].Split(' ');
-                                
+
                 switch (parametres[0].ToLower())
                 {
-                    case "channel":
+                    case "join":
                         Subscribe(GetParametre(parametres, 1));
                         break;
+                    case "leave":
+                        Unsubscribe(GetParametre(parametres, 1));
+                        break;
                     default:
-                        sw.WriteLine("Invalid command!");
+                        SendServerMessage("Invalid command!");
                         break;
                 }
             }
+            else if (currentChannel != null)
+                chatService.InitiateBroadcast(currentChannel.Name, data);
         }
 
         private string GetParametre(string[] parametres, int num)

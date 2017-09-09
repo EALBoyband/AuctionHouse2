@@ -20,6 +20,7 @@ namespace ChatServerDesign
 
         public Channel JoinChannel(string name)
         {
+            name = name.ToLower();
             Channel channel = channels.Find(x => x.Name == name);
 
             if (channel == null)
@@ -30,14 +31,6 @@ namespace ChatServerDesign
             }
 
             return channel;
-        }
-
-        public void LeaveChannel(string name, ClientHandler clientHandler)
-        {
-            Channel channel = channels.Find(x => x.Name == name);
-
-            if (channel != null)
-                channel.Subscribers -= clientHandler.SendMessage;
         }
 
         public void InitiateBroadcast(string channelName, string data)
