@@ -8,12 +8,41 @@ namespace ChatServerDesign
 {
     class ChatService
     {
-        public delegate void Broadcaster(string message);
-        public event Broadcaster Subscribers;
+        List<Channel> channels;
 
-        public void Broadcast(string message)
+        public ChatService()
         {
-            Subscribers(message);
+            channels = new List<Channel>();
+            Channel main = new Channel();
+            main.Name = "main";
+            channels.Add(main);
+        }
+
+        public Channel JoinChannel(string name)
+        {
+            Channel channel = channels.Find(x => x.Name == name);
+
+            if (channel == null)
+            {
+                channel = new Channel();
+                channel.Name = name;
+                channels.Add(channel);
+            }
+
+            return channel;
+        }
+
+        public void LeaveChannel(string name, ClientHandler clientHandler)
+        {
+            Channel channel = channels.Find(x => x.Name == name);
+
+            if (channel != null)
+                channel.Subscribers -= clientHandler.SendMessage;
+        }
+
+        public void InitiateBroadcast(string channelName, string data)
+        {
+            channels.Find(x => x.Name == channelName).Broadcast(data);
         }
     }
 }
