@@ -87,6 +87,7 @@ namespace ChatServerDesign
 
         private void Subscribe(string channelName)
         {
+            channelName = channelName.ToLower();
             Channel channel = subscribedChannels.Find(x => x.Name == channelName);
 
             if (channel == null)
@@ -116,6 +117,8 @@ namespace ChatServerDesign
                 channel.Subscribers -= SendMessage;
                 SendServerMessage(string.Format("You left channel <{0}>", channel.Name));
             }
+            else
+                SendServerMessage("You are not a member of that channel.");
         }
 
         private void UnsubscribeAll()
@@ -135,18 +138,23 @@ namespace ChatServerDesign
             {
                 string[] parametres = tokens[1].Split(' ');
 
-                switch (parametres[0].ToLower())
+                if (GetParametre(parametres, 1).Trim().Length > 0)
                 {
-                    case "join":
-                        Subscribe(GetParametre(parametres, 1));
-                        break;
-                    case "leave":
-                        Unsubscribe(GetParametre(parametres, 1));
-                        break;
-                    default:
-                        SendServerMessage("Invalid command!");
-                        break;
+                    switch (parametres[0].ToLower())
+                    {
+                        case "join":
+                            Subscribe(GetParametre(parametres, 1));
+                            break;
+                        case "leave":
+                            Unsubscribe(GetParametre(parametres, 1));
+                            break;
+                        default:
+                            SendServerMessage("Invalid command!");
+                            break;
+                    }
                 }
+                else
+                    SendServerMessage("Invalid command!");
             }
             else if (currentChannel != null)
                 chatService.InitiateBroadcast(currentChannel.Name, data);
