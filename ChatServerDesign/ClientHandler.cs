@@ -55,7 +55,7 @@ namespace ChatServerDesign
 
         public void SendMessage(string message)
         {
-            sw.WriteLine("{0}: {1}", Name, message);
+            sw.WriteLine(message);
             sw.Flush();
         }
 

@@ -16,6 +16,7 @@ namespace ChatServerDesign
         decimal currentPrice;
         decimal priceIncrease;
         ChatService cs;
+        Object padLock;
 
         public Auction(string name, decimal startPrice, decimal priceIncrease, ChatService cs)
         {
@@ -24,48 +25,59 @@ namespace ChatServerDesign
             currentPrice = this.startPrice;
             this.priceIncrease = priceIncrease;
             this.cs = cs;
+            padLock = new Object();
         }
         public void Run()
         {
             while (auctionSeconds > 0)
             {
                 Thread.Sleep(1000);
-                auctionSeconds--;
-                switch (auctionSeconds)
+                
+                if (currentPrice > startPrice)
                 {
-                    case 4:
-                        Console.WriteLine("Going first!");
-                        cs.Broadcast("Going first!");
-                        break;
-                    case 2:
-                        Console.WriteLine("Going twice!");
-                        cs.Broadcast("Going twice!");
-                        break;
-                    case 0:
-                        Console.WriteLine("SOLD");
-                        cs.Broadcast($"SOLD to {highestBidder}");
-                        break;
+                    auctionSeconds--;
+
+                    switch (auctionSeconds)
+                    {
+                        case 4:
+                            Console.WriteLine("Going first!");
+                            cs.Broadcast("Going first!");
+                            break;
+                        case 2:
+                            Console.WriteLine("Going twice!");
+                            cs.Broadcast("Going twice!");
+                            break;
+                        case 0:
+                            Console.WriteLine("SOLD");
+                            cs.Broadcast($"SOLD to {highestBidder}");
+                            break;
+                    }
                 }
+                
             }
         }
 
         public void Bid(ClientHandler ch)
         {
-            if (auctionSeconds > 0)
+            lock (padLock)
             {
-                currentPrice += priceIncrease;
-                highestBidder = ch.Name;
-                cs.Broadcast($"Bid has increased to: {currentPrice} by {highestBidder}");
-                if (auctionSeconds < 6)
+                if (auctionSeconds > 0)
                 {
-                    auctionSeconds = 6;
+                    currentPrice += priceIncrease;
+                    highestBidder = ch.Name;
+                    Console.WriteLine($"Bid has increased to: {currentPrice} by {highestBidder}");
+                    cs.Broadcast($"Bid has increased to: {currentPrice} by {highestBidder}");
+                    if (auctionSeconds < 6)
+                    {
+                        auctionSeconds = 6;
+                    }
+                }
+                else
+                {
+                    ch.SendMessage("The auction has already ended");
                 }
             }
-            else
-            {
-                ch.SendMessage("The auction has already ended");
-            }
-    
+
         }
 
 
