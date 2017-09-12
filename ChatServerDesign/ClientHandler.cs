@@ -38,6 +38,7 @@ namespace ChatServerDesign
 
         public void Run()
         {
+            SendMessage($"You are {Name}");
             while (CanRead)
             {
                 try

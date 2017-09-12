@@ -16,7 +16,7 @@ namespace ChatServerDesign
         decimal currentPrice;
         decimal priceIncrease;
         ChatService cs;
-        Object padLock;
+        object padLock;
 
         public Auction(string name, decimal startPrice, decimal priceIncrease, ChatService cs)
         {
@@ -25,8 +25,9 @@ namespace ChatServerDesign
             currentPrice = this.startPrice;
             this.priceIncrease = priceIncrease;
             this.cs = cs;
-            padLock = new Object();
+            padLock = new object();
         }
+
         public void Run()
         {
             while (auctionSeconds > 0)
@@ -48,12 +49,11 @@ namespace ChatServerDesign
                             cs.Broadcast("Going twice!");
                             break;
                         case 0:
-                            Console.WriteLine("SOLD");
+                            Console.WriteLine($"SOLD to {highestBidder}");
                             cs.Broadcast($"SOLD to {highestBidder}");
                             break;
                     }
-                }
-                
+                }                
             }
         }
 
@@ -65,21 +65,14 @@ namespace ChatServerDesign
                 {
                     currentPrice += priceIncrease;
                     highestBidder = ch.Name;
-                    Console.WriteLine($"Bid has increased to: {currentPrice} by {highestBidder}");
-                    cs.Broadcast($"Bid has increased to: {currentPrice} by {highestBidder}");
+                    Console.WriteLine($"Bid on {name} has increased to: {currentPrice} by {highestBidder}");
+                    cs.Broadcast($"Bid on {name} has increased to: {currentPrice} by {highestBidder}");
                     if (auctionSeconds < 6)
-                    {
                         auctionSeconds = 6;
-                    }
                 }
                 else
-                {
                     ch.SendMessage("The auction has already ended");
-                }
             }
-
         }
-
-
     }
 }
