@@ -27,7 +27,7 @@ namespace ChatServerDesign
             listener = new TcpListener(ip, port);
             listener.Start();
             chatService = new ChatService();
-            auction = new Auction("BlackDragon D", 250, 25, chatService);
+            auction = new Auction("Rathalos Doll", 250, 25, chatService);
         }
 
         public void Run()
