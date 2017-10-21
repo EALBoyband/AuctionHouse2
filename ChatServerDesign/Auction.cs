@@ -57,6 +57,8 @@ namespace ChatServerDesign
             }
         }
 
+        //Use a delegate instead of ClientHandler ch (ch.SendMessage)
+        //comment
         public void Bid(ClientHandler ch)
         {
             lock (padLock)
